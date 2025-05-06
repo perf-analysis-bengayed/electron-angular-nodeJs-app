@@ -1,8 +1,9 @@
+// preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   sendMessage: (channel, data) => {
-    let validChannels = ['toMain'];
+    let validChannels = ['toMain', 'createProject'];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
     }
@@ -12,5 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
+  },
+  getProject: (projectId) => {
+    return ipcRenderer.invoke('getProject', projectId); // Add invoke for getProject
   },
 });

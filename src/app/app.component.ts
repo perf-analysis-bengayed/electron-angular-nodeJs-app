@@ -1,28 +1,17 @@
-import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ElectronService } from './electron.service';
 
+
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [FormsModule],
+  imports: [RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  message: string = '';
-  receivedMessage: string = '';
-
-  constructor(private electronService: ElectronService) {}
-
-  ngOnInit() {
-    this.electronService.getMessages().subscribe((msg) => {
-      this.receivedMessage = msg;
-    });
-  }
-
-  sendMessage() {
-    this.electronService.sendMessage(this.message);
-    this.message = '';
-  }
+export class AppComponent {
+  title = 'Perf-analysis-Front-End';
 }

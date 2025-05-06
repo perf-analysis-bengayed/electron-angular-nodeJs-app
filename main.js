@@ -1,6 +1,7 @@
+// main.js
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const fetch = require('node-fetch');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -13,43 +14,56 @@ function createWindow() {
     },
   });
 
-  let indexPath = path.join(__dirname, 'dist/electron-angular-app/index.html');
-  const distDir = path.join(__dirname, 'dist/electron-angular-app');
-
-  if (fs.existsSync(distDir)) {
-    console.log('dist/electron-angular-app contents:', fs.readdirSync(distDir));
-  } else {
-    console.error('dist/electron-angular-app does not exist');
-  }
-
-  if (!fs.existsSync(indexPath)) {
-    console.error('Error: index.html not found at', indexPath);
-    return;
-  }
-
-  win.loadFile(indexPath).catch((err) => {
-    console.error('Failed to load index.html:', err);
-  });
+  const indexPath = path.join(__dirname, 'dist/electron-angular-app/index.html');
+  win.loadFile(indexPath).catch((err) => console.error('Failed to load index.html:', err));
   win.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
   createWindow();
-
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  if (process.platform !== 'darwin') app.quit();
+});
+
+// Handle 'createProject' channel
+ipcMain.on('createProject', (event, projectData) => {
+  console.log('Received project data:', projectData);
+  try {
+    const parsedData = JSON.parse(projectData);
+
+    // Send project data to a mock server
+    fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(parsedData),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Server responded with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        console.log('Server response:', data);
+        event.sender.send('fromMain', `Project created: ${parsedData.projectName}`);
+      })
+      .catch((error) => {
+        console.error('Error sending project to server:', error);
+        event.sender.send('fromMain', `Failed to create project: ${error.message}`);
+      });
+  } catch (err) {
+    console.error('Failed to parse project data:', err);
+    event.sender.send('fromMain', 'Error processing project data');
   }
 });
 
+// Handle 'toMain' channel
 ipcMain.on('toMain', (event, message) => {
-  console.log('Message from renderer:', message);
-  event.sender.send('fromMain', `Received: ${message}`);
+  console.log('Received message:', message);
+  event.sender.send('fromMain', `Echo: ${message}`);
 });
