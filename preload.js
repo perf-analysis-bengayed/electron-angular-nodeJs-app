@@ -3,18 +3,15 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   sendMessage: (channel, data) => {
-    let validChannels = ['toMain', 'createProject'];
+    const validChannels = ['toMain', 'createProject', 'fetchProject'];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
     }
   },
   receiveMessage: (channel, func) => {
-    let validChannels = ['fromMain'];
+    const validChannels = ['fromMain', 'createProjectResponse', 'fetchProjectResponse'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
-  },
-  getProject: (projectId) => {
-    return ipcRenderer.invoke('getProject', projectId); // Add invoke for getProject
   },
 });

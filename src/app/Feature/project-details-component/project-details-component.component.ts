@@ -1,7 +1,5 @@
-// project-details.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,7 +24,6 @@ export class ProjectDetailsComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Get projectId from route parameters
     this.projectId = this.route.snapshot.paramMap.get('id');
     if (this.projectId) {
       this.fetchProject(this.projectId);
@@ -35,12 +32,19 @@ export class ProjectDetailsComponent implements OnInit {
     }
   }
 
-  async fetchProject(projectId: string) {
-    try {
-      this.project = await this.electronService.getProject(projectId);
-    } catch (error) {
-      this.snackBarService.showError('Failed to load project information.');
-      console.error(error);
-    }
+  fetchProject(projectId: string) {
+    this.electronService.fetchProject(projectId).subscribe(
+      (response) => {
+        if (response.success) {
+          this.project = response.project;
+        } else {
+          this.snackBarService.showError(response.error || 'Failed to load project information.');
+        }
+      },
+      (error) => {
+        this.snackBarService.showError('Failed to load project information.');
+        console.error('Error fetching project:', error);
+      }
+    );
   }
 }

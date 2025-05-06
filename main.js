@@ -30,11 +30,16 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// In-memory storage for projects
+const projects = new Map();
+
 // Handle 'createProject' channel
 ipcMain.on('createProject', (event, projectData) => {
   console.log('Received project data:', projectData);
   try {
     const parsedData = JSON.parse(projectData);
+    // Store project in memory
+    projects.set(parsedData.id, parsedData);
 
     // Send project data to a mock server
     fetch('https://jsonplaceholder.typicode.com/posts', {
@@ -50,15 +55,25 @@ ipcMain.on('createProject', (event, projectData) => {
       })
       .then((data) => {
         console.log('Server response:', data);
-        event.sender.send('fromMain', `Project created: ${parsedData.projectName}`);
+        event.sender.send('createProjectResponse', { success: true, project: parsedData });
       })
       .catch((error) => {
         console.error('Error sending project to server:', error);
-        event.sender.send('fromMain', `Failed to create project: ${error.message}`);
+        event.sender.send('createProjectResponse', { success: false, error: error.message });
       });
   } catch (err) {
     console.error('Failed to parse project data:', err);
-    event.sender.send('fromMain', 'Error processing project data');
+    event.sender.send('createProjectResponse', { success: false, error: 'Error processing project data' });
+  }
+});
+
+// Handle 'fetchProject' channel
+ipcMain.on('fetchProject', (event, projectId) => {
+  const project = projects.get(projectId);
+  if (project) {
+    event.sender.send('fetchProjectResponse', { success: true, project });
+  } else {
+    event.sender.send('fetchProjectResponse', { success: false, error: 'Project not found' });
   }
 });
 

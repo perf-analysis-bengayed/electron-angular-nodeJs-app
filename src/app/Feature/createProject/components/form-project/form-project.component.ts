@@ -1,4 +1,3 @@
-// form-project.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -39,6 +38,7 @@ export class FormProjectComponent implements OnInit, OnDestroy {
   videoUrl: string | null = null;
   private createSub: Subscription | null = null;
   private videoUrlSub: Subscription | null = null;
+  private projectResponseSub: Subscription | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -69,7 +69,6 @@ export class FormProjectComponent implements OnInit, OnDestroy {
       this.isSubmitting = false;
       this.snackBarService.showSuccess('Project created successfully!');
       console.log('Project Created:', project);
-      this.resetForm();
       this.router.navigate([`/project/${project.id}`]);
     });
 
@@ -78,14 +77,14 @@ export class FormProjectComponent implements OnInit, OnDestroy {
       this.videoSelected = !!videoUrl;
     });
 
-    // Optional: Listen for server response
-    this.electronService.getMessages().subscribe((message) => {
+    this.projectResponseSub = this.electronService.getProjectResponses().subscribe((response) => {
       this.isSubmitting = false;
-      if (message.includes('Project created')) {
-        this.snackBarService.showSuccess(message);
+      if (response.success) {
+        this.snackBarService.showSuccess(`Project created: ${response.project.projectName}`);
+        this.formProjectService.createEvent.emit(response.project);
         this.resetForm();
       } else {
-        this.snackBarService.showError(message);
+        this.snackBarService.showError(`Failed to create project: ${response.error}`);
       }
     });
   }
@@ -110,11 +109,8 @@ export class FormProjectComponent implements OnInit, OnDestroy {
         videoUrl: this.videoUrl || 'http://url-de-video',
       };
 
-      // Send project data to Electron main process
       if (typeof window !== 'undefined' && window.electronAPI) {
         window.electronAPI.sendMessage('createProject', JSON.stringify(projectData));
-        // Optionally reset form immediately or wait for server response
-        // this.resetForm();
       } else {
         console.error('Electron API not available');
         this.snackBarService.showError('Failed to communicate with the main process.');
@@ -138,5 +134,6 @@ export class FormProjectComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.createSub) this.createSub.unsubscribe();
     if (this.videoUrlSub) this.videoUrlSub.unsubscribe();
+    if (this.projectResponseSub) this.projectResponseSub.unsubscribe();
   }
 }
